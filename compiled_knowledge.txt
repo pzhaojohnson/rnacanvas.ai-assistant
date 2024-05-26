@@ -1,0 +1,483 @@
+# Console Interaction
+
+RNAcanvas Code can be interacted with using the web browser console.
+
+The web browser console can be opened with `Ctrl+Shift+J` (or `Cmd+Option+J` on Mac).
+
+# Quickstart
+
+### Drawing a structure
+
+```typescript
+// the structure to draw
+var seq = 'AGAGUAGCAUUCUGCUUUAGACUGUUAACUUUAUGAACCACGCGUGUCACGUGGGGAGAGUUAACAGCGCCC';
+var dotBracket = '(((((((....)))))))...(((((((((((.....(((((.......)))))..))))))))))).....';
+
+app.drawDotBracket(seq, dotBracket);
+
+// add some extra space around the drawn structure
+// (and ensure that the drawing is big enough for the drawn structure)
+app.drawing.setPadding(500);
+
+// fit the user's view of the drawing to the drawn structure
+app.drawingView.fitToContent();
+```
+
+### Controlling the layout of bases
+
+See the [full documentation](https://pzhaojohnson.github.io/rnacanvas.bases-layout/)
+for the `@rnacanvas/bases-layout` package.
+
+```typescript
+// all bases in the drawing
+var bases = [...app.drawing.bases];
+
+// shift the bases by the given vector
+shift(bases, { x: 500, y: -350 });
+
+// rotate the bases by 120 degrees clockwise
+rotate(bases, 2 * Math.PI / 3);
+
+// represents the central point of all bases
+let centroid = new Centroid(bases);
+
+// recenter the bases at (912, 204)
+centroid.set({ x: 912, y: 204 });
+centroid.get(); // { x: 912, y: 204 }
+
+// all base-pairs in the secondary structure of the drawing
+var basePairs = [...app.drawing.secondaryBonds].map(sb => [...sb.basePair]];
+
+// radialize the bases
+// (the default layout for the bases in a structure)
+radialize(bases, basePairs, { spacing: 20, basePairSpacing: 10, hairpinLoopSpacing: 10 });
+```
+
+### Exporting a drawing
+
+Drawings can be exported in SVG format,
+which can be opened (and edited further) in vector graphics softwares
+like Adobe Illustrator and Inkscape.
+
+```typescript
+// the outer HTML of the drawing is SVG XML that can be exported
+var file = new DownloadableFile(app.drawing.outerHTML);
+
+file.downloadAs('drawing.svg', { type: 'text/plain' });
+```
+
+
+
+################################################################################
+
+
+# Installation
+
+With `npm`:
+
+```
+npm install @rnacanvas/draw.bases
+```
+
+# Usage
+
+All exports of the package can be accessed as named imports.
+
+```typescript
+import { Nucleobase } from '@rnacanvas/draw.bases';
+```
+
+# Exports
+
+## `Nucleobase`
+
+The `Nucleobase` class represents a `text` element within an SVG document that is a nucleobase.
+
+### `static create()`
+
+Creates a nucleobase with the specified text content.
+
+This method will also apply default values to the created nucleobase
+and assign it a UUID.
+
+(It is necessary for all elements to have a unique ID
+when saving an RNAcanvas drawing.)
+
+```typescript
+let b = Nucleobase.create('A');
+
+b.textContent === 'A'; // true
+```
+
+### `constructor()`
+
+Receives an `SVGTextElement` instance as input.
+
+The created nucleobase "adopts" the input SVG text element and behaves as though it is the SVG text element.
+
+```typescript
+let textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+
+let b = new Nucleobase(textElement);
+```
+
+### `domNode`
+
+A reference to the `SVGTextElement` instance that is the nucleobase.
+
+```typescript
+let textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+let b = new Nucleobase(textElement);
+
+b.domNode === textElement; // true
+```
+
+### `appendTo()`
+
+Appends the text element that is the nucleobase to the given container node.
+
+```typescript
+let svgDoc = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+
+let b = Nucleobase.create('A');
+b.appendTo(svgDoc);
+
+svgDoc.contains(b.domNode); // true
+```
+
+### `remove()`
+
+Removes the text element that is the nucleobase from any parent container node that it is in.
+
+This method does nothing if the text element does not have a parent container node.
+
+```typescript
+let svgDoc = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+let b = Nucleobase.create('G');
+
+b.appendTo(svgDoc);
+svgDoc.contains(b.domNode); // true
+
+b.remove();
+svgDoc.contains(b.domNode); // false
+```
+
+### `isIn()`
+
+Returns `true` if the text element that is the nucleobase is a child
+(or grandchild, great-grandchild, etc.) of the given node.
+
+Returns `false` otherwise, including when input the text element itself.
+
+```typescript
+let svgDoc = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+
+let b = Nucleobase.create('U');
+b.appendTo(svgDoc);
+
+b.isIn(svgDoc); // true
+b.isIn(b.domNode); // false
+```
+
+### `getAttribute()`
+
+Get an attribute of the SVG text element that is the nucleobase.
+
+```typescript
+nucleobase.domNode.setAttribute('fill', '#a62cf1');
+
+nucleobase.getAttribute('fill') === '#a62cf1'; // true
+```
+
+### `setAttribute()`
+
+Set an attribute of the SVG text element that is the nucleobase.
+
+```typescript
+nucleobase.setAttribute('fill', '#b28ccf');
+
+nucleobase.domNode.getAttribute('fill') === '#b28ccf'; // true
+```
+
+### `setAttributes()`
+
+Set multiple attributes of the SVG text element that is the nucleobase at once
+using an object of attribute values keyed by attribute name.
+
+Invalid inputs are ignored. (This method is not supposed to throw.)
+
+```typescript
+nucleobase.setAttributes({ 'font-family': 'Comic Sans', 'fill': '#fa391c' });
+
+nucleobase.domNode.getAttribute('font-family') === 'Comic Sans'; // true
+nucleobase.domNode.getAttribute('fill') === '#fa391c'; // true
+```
+
+### `id`
+
+The `id` attribute of the text element that is the nucleobase.
+
+(More precisely, returns that which is returned by the `id` property of the text element.)
+
+```typescript
+nucleobase.domNode.setAttribute('id', 'text-123456');
+
+nucleobase.id === 'text-123456'; // true
+```
+
+### `assignUUID()`
+
+Creates and assigns a new UUID to the text element that is the nucleobase.
+
+This method will overwrite any existing ID that the nucleobase has.
+
+The assigned UUID might also have some letters prepended to it
+(since all SVG element IDs must start with a letter),
+resulting in the assigned UUID having more than 36 characters.
+
+```typescript
+nucleobase.assignUUID();
+```
+
+### `textContent`
+
+The text content of the text element that is the nucleobase.
+
+(More precisely, returns that which is returned by the `textContent` property of the text element when used as a getter.)
+
+```typescript
+nucleobase.domNode.textContent = 'R';
+
+nucleobase.textContent === 'R'; // true
+```
+
+### `bbox`
+
+The bounding box of the text element that is the nucleobase.
+
+Essentially, just forwards the values returned by the underlying `getBBox` method.
+
+```typescript
+nucleobase.bbox; // a box with X and Y coordinates and width and height
+```
+
+### `centerPoint`
+
+The center point of the bounding box of the nucleobase.
+
+Setting this will move the nucleobase.
+
+```typescript
+// recenter the nucleobase on point (92, -112)
+nucleobase.centerPoint = { x: 92, y: -112 };
+```
+
+### `getCenterPoint()`
+
+A simple getter method for the center point of the nucleobase.
+
+```typescript
+nucleobase.getCenterPoint();
+```
+
+### `setCenterPoint()`
+
+A simple setter method for the center point of the nucleobase.
+
+```typescript
+nucleobase.setCenterPoint({ x: 92, y: 178 });
+```
+
+### `addEventListener()`
+
+For listening for events on the nucleobase.
+
+#### Listening for move events
+
+Move events are defined as occurring when either the `x` or `y` attributes of the text element that is the nucleobase are changed.
+
+Note that this definition does not include other changes that might change where the nucleobase appears on screen
+(e.g., transforms).
+
+```typescript
+let listener = () => attachedElement.reposition();
+
+nucleobase.addEventListener('move', listener);
+```
+
+
+
+################################################################################
+
+
+# Installation
+
+With `npm`:
+
+```
+npm install @rnacanvas/bases-layout
+```
+
+# Usage
+
+All exports of this package can be accessed using named imports.
+
+```typescript
+// some example imports
+import { stemmify } from '@rnacanvas/bases-layout';
+import { Centroid, shift } from '@rnacanvas/bases-layout';
+import { circularize, round } from '@rnacanvas/bases-layout';
+```
+
+# Exports
+
+## `Nucleobase`
+
+The `Nucleobase` interface defines the expected interface for nucleobases used throughout this package.
+
+(Basically, nucleobases just have to have a `getCenterPoint()` method and a `setCenterPoint()` method.)
+
+```typescript
+interface Nucleobase {
+  getCenterPoint(): { x: number, y: number };
+
+  setCenterPoint(p: { x: number, y: number }): void;
+}
+```
+
+## `NucleobaseMock`
+
+The `NucleobaseMock` class is a simple class that just stores the coordinates of a center point
+(and is primarily used for testing purposes).
+
+It is often possible, though, to improve the performance of layout operations on nucleobases
+by performing them on mock nucleobases first
+and then copying the final coordinates of the mock nucleobases to the actual nucleobases that one is working with.
+
+```typescript
+let b = new NucleobaseMock({ centerPoint: { x: 92.3, y: -57.2 } });
+
+b.getCenterPoint(); // { x: 92.3, y: -57.2 }
+
+b.setCenterPoint({ x: 111.5, y: 63 });
+```
+
+## `Centroid`
+
+The `Centroid` class represents the centroid of a collection of nucleobases
+(where the centroid is defined as the "average" of the center points of all the bases).
+
+Setting this will move the bases.
+
+```typescript
+let bases = [
+  new NucleobaseMock({ centerPoint: { x: 10, y: 22 } }),
+  new NucleobaseMock({ centerPoint: { x: 2, y: 8 } }),
+  new NucleobaseMock({ centerPoint: { x: 0, y: -12 } }),
+];
+
+let centroid = new Centroid(bases);
+
+centroid.get(); // { x: 4, y: 6 }
+
+// move the bases such that their centroid is now (33, 41)
+centroid.set({ x: 33, y: 41 });
+```
+
+## `Direction`
+
+The `Direction` class represents the overall direction of an ordered collection of nucleobases
+(i.e., it is the direction of the vector that results from traversing the bases in order
+and adding the individual vectors connecting each consecutive pair of bases).
+
+This is also equal to simply the direction of the vector from the first base to the last base.
+
+This class expresses direction values in radians.
+
+The `set` method of this class can also be used to rotate the target bases
+such that their overall direction becomes the specified direction.
+
+```typescript
+let bases = [
+  new NucleobaseMock({ centerPoint: { x: 124, y: 4134 } }),
+  new NucleobaseMock({ centerPoint: { x: 8, y: 0 } }),
+  new NucleobaseMock({ centerPoint: { x: 99, y: -2 } }),
+  new NucleobaseMock({ centerPoint: { x: 551, y: 7 } }),
+];
+
+let direction = new Direction(bases);
+
+direction.get(); // -1.4676981844274177
+
+// rotates the target bases such their overall direction becomes 0.62
+direction.set(0.62);
+```
+
+## `shift()`
+
+Shifts the target bases by the given displacement vector.
+
+```typescript
+let bases = [
+  new NucleobaseMock({ centerPoint: { x: 14, y: 12 } }),
+  new NucleobaseMock({ centerPoint: { x: 140, y: 437 } }),
+  new NucleobaseMock({ centerPoint: { x: -2, y: -88 } }),
+];
+
+shift(bases, { x: 38, y: -124 });
+
+bases[0].getCenterPoint(); // { x: 52, y: -112 }
+bases[1].getCenterPoint(); // { x: 178, y: 313 }
+bases[2].getCenterPoint(); // { x: 36, y: -212 }
+```
+
+## `rotate()`
+
+Rotates the target bases by the given angle (specified in radians).
+
+Bases are rotated in the direction of increasing direction angles
+(i.e., counterclockwise in the standard Cartesian coordinate system).
+
+```typescript
+let bases = [
+  new NucleobaseMock({ centerPoint: { x: 12, y: 100 } }),
+  new NucleobaseMock({ centerPoint: { x: -58, y: -2 } }),
+  new NucleobaseMock({ centerPoint: { x: 64, y: 800 } }),
+];
+
+let direction = new Direction(bases);
+direction.get(); // 1.496646807136276
+
+rotate(bases, Math.PI / 4);
+
+direction.get(); // 2.282044970533724
+```
+
+## `straighten()`
+
+Arranges the target bases in a straight line,
+maintaining the original positions of the first and last bases
+and spacing the bases evenly.
+
+```typescript
+let bases = [
+  new NucleobaseMock({ centerPoint: { x: 81, y: 7 } }),
+  new NucleobaseMock({ centerPoint: { x: 92, y: 12 } }),
+  new NucleobaseMock({ centerPoint: { x: 401, y: -42 } }),
+  new NucleobaseMock({ centerPoint: { x: -3819, y: 4829 } }),
+];
+
+straighten(bases);
+```
+
+## `linearize()`
+
+Arranges the target bases in a straight line
+(with the specified spacing between the center points of each consecutive pair of bases).
+
+At present, this function will maintain the original centroid and overall direction (see the `Direction` class) of the target bases,
+though this might be subject to change in the future.
+
+```typescript
+linearize(bases, { spacing: 20 });
+```
